@@ -1,6 +1,5 @@
 import Logout from "./LogoutButton";
 import { createClient } from "@/lib/server";
-import { redirect } from "next/navigation";
 
 export default async function Navbar() {
   const supabase = await createClient();
