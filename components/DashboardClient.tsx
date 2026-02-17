@@ -25,7 +25,7 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
   const [items, setItems] = useState<Bookmark[]>(bookmarks);
   const [editing, setEditing] = useState<Bookmark | null>(null);
 
-  const [supabase] = useState(() => createClient());
+  const supabase = createClient();
 
   useEffect(() => {
     const channel = supabase
@@ -39,51 +39,36 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          const { eventType, new: newRow, old: oldRow } = payload;
+          console.log("REALTIME:", payload);
 
           setItems((prev) => {
+            const { eventType, new: newRow, old: oldRow } = payload;
             let updated = [...prev];
 
             if (eventType === "INSERT") {
-              const row = newRow as Bookmark;
-              if (!updated.some((b) => b.id === row.id)) {
-                updated.unshift(row);
-              }
+              updated.unshift(newRow as Bookmark);
             }
 
             if (eventType === "UPDATE") {
-              const row = newRow as Bookmark;
-              updated = updated.map((b) => (b.id === row.id ? row : b));
+              updated = updated.map((b) =>
+                b.id === (newRow as Bookmark).id ? (newRow as Bookmark) : b,
+              );
             }
 
             if (eventType === "DELETE") {
-              const row = oldRow as Bookmark;
-              updated = updated.filter((b) => b.id !== row.id);
+              updated = updated.filter((b) => b.id !== (oldRow as Bookmark).id);
             }
 
-            return updated.sort(
-              (a, b) =>
-                new Date(b.created_at).getTime() -
-                new Date(a.created_at).getTime(),
-            );
+            return updated;
           });
         },
       )
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          const { data } = await supabase
-            .from("bookmarks")
-            .select("*")
-            .order("created_at", { ascending: false });
-
-          setItems(data ?? []);
-        }
-      });
+      .subscribe((status) => console.log("STATUS:", status));
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, userId]);
+  }, [userId]);
 
   const handleAdd = async (data: { url: string; title: string }) => {
     if (editing) {
