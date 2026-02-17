@@ -72,12 +72,19 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
 
   const handleAdd = async (data: { url: string; title: string }) => {
     if (editing) {
-      await supabase.from("bookmarks").update(data).eq("id", editing.id);
+      await supabase
+        .from("bookmarks")
+        .update(data)
+        .eq("id", editing.id)
+        .select();
     } else {
-      await supabase.from("bookmarks").insert({
-        ...data,
-        user_id: userId,
-      });
+      await supabase
+        .from("bookmarks")
+        .insert({
+          ...data,
+          user_id: userId,
+        })
+        .select();
     }
 
     setOpen(false);
@@ -85,7 +92,7 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("bookmarks").delete().eq("id", id);
+    await supabase.from("bookmarks").delete().eq("id", id).select();
   };
 
   return (
