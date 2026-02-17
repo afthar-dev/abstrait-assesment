@@ -25,7 +25,7 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
   const [items, setItems] = useState<Bookmark[]>(bookmarks);
   const [editing, setEditing] = useState<Bookmark | null>(null);
 
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     const channel = supabase
@@ -61,7 +61,6 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
               updated = updated.filter((b) => b.id !== row.id);
             }
 
-            // keep ordering stable
             return updated.sort(
               (a, b) =>
                 new Date(b.created_at).getTime() -
@@ -70,7 +69,16 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
           });
         },
       )
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          const { data } = await supabase
+            .from("bookmarks")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+          setItems(data ?? []);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
