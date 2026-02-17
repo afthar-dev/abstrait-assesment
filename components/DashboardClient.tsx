@@ -25,50 +25,71 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
   const [items, setItems] = useState<Bookmark[]>(bookmarks);
   const [editing, setEditing] = useState<Bookmark | null>(null);
 
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
-    const channel = supabase
-      .channel(`bookmarks-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bookmarks",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log("REALTIME:", payload);
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-          setItems((prev) => {
+    const startRealtime = async () => {
+      // ensure session exists before websocket starts
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) return;
+
+      channel = supabase
+        .channel(`bookmarks-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "bookmarks",
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
             const { eventType, new: newRow, old: oldRow } = payload;
-            let updated = [...prev];
 
-            if (eventType === "INSERT") {
-              updated.unshift(newRow as Bookmark);
-            }
+            setItems((prev) => {
+              let updated = [...prev];
 
-            if (eventType === "UPDATE") {
-              updated = updated.map((b) =>
-                b.id === (newRow as Bookmark).id ? (newRow as Bookmark) : b,
+              if (eventType === "INSERT") {
+                const row = newRow as Bookmark;
+                if (!updated.some((b) => b.id === row.id)) {
+                  updated.unshift(row);
+                }
+              }
+
+              if (eventType === "UPDATE") {
+                const row = newRow as Bookmark;
+                updated = updated.map((b) => (b.id === row.id ? row : b));
+              }
+
+              if (eventType === "DELETE") {
+                const row = oldRow as Bookmark;
+                updated = updated.filter((b) => b.id !== row.id);
+              }
+
+              return updated.sort(
+                (a, b) =>
+                  new Date(b.created_at).getTime() -
+                  new Date(a.created_at).getTime(),
               );
-            }
+            });
+          },
+        )
+        .subscribe((status) => {
+          console.log("Realtime status:", status);
+        });
+    };
 
-            if (eventType === "DELETE") {
-              updated = updated.filter((b) => b.id !== (oldRow as Bookmark).id);
-            }
-
-            return updated;
-          });
-        },
-      )
-      .subscribe((status) => console.log("STATUS:", status));
+    startRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [supabase, userId]);
 
   const handleAdd = async (data: { url: string; title: string }) => {
     if (editing) {
