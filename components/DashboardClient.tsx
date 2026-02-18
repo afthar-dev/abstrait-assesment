@@ -124,14 +124,16 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
 
       <div className="flex flex-col justify-center items-center w-80 md:w-4xl rounded-lg bg-blue-50 p-5 md:p-10">
         <div className="flex items-center justify-between w-full">
-          <p className="text-2xl font-bold">Hello {email.split("@")[0]}!</p>
+          <p className="text-lg md:text-2xl font-bold">
+            Hello {email.split("@")[0]}!
+          </p>
 
           <button
             onClick={() => {
               setEditing(null);
               setOpen(true);
             }}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg flex items-center"
+            className="px-3 py-1md:px-4 md:py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg flex items-center"
           >
             Add Bookmark <Plus className="ml-1" size={16} />
           </button>
