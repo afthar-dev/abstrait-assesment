@@ -1,37 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smart Bookmark App
 
-## Getting Started
+This is a simple bookmark manager I built with Next.js and Supabase. The main goal was to keep it small but real: Google login, private user data, realtime updates, and a clean UI deployed on Vercel.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Live
+
+Live URL: **https://abstrait-assesment.vercel.app/**
+GitHub Repo: **https://github.com/afthar-dev/abstrait-assesment**
+
+---
+
+## What the app does
+
+* Sign in using Google OAuth
+* Add bookmarks with a title and URL
+* Edit and delete your own bookmarks
+* Each user only sees their own data
+* Realtime updates across tabs without refreshing
+
+---
+
+## Tech Stack
+
+Next.js (App Router), Supabase (Auth, Postgres, Realtime), Tailwind CSS, TypeScript.
+
+---
+
+## My experience building this
+
+Most of the real work wasn’t the UI. It was understanding how Supabase behaves inside a Next.js app.
+
+At the beginning, authentication kept returning `null` on the server even though login worked. That turned out to be a cookie handling issue with the SSR client. Once that was fixed, I ran into realtime problems that worked locally but felt unreliable in production.
+
+Some of the things I had to figure out along the way:
+
+* I ran into an issue where realtime updates didn’t work consistently because the subscription was starting before the user’s auth session was fully ready on the client. The connection looked active, but it wasn’t actually listening with the correct user context. The fix was to wait for `supabase.auth.getSession()` and only start the realtime channel after a valid session existed. Once the subscription happened after authentication finished, updates became reliable.
+* One issue I ran into was that delete actions worked in the database but didn’t update the UI through realtime. It turned out that Postgres doesn’t include the full deleted row data in realtime events by default, so my app couldn’t tell which bookmark was removed. The fix was running `ALTER TABLE bookmarks REPLICA IDENTITY FULL;`, which makes Postgres send the full previous row in delete events. After that, realtime updates started working properly because the UI finally knew exactly which item to remove.
+* The table also had to be added to the `supabase_realtime` publication for real time updation for the ui
+* Refetching the whole table after every change caused flickering, so I switched to updating only the changed rows
+
+None of these issues were obvious at first, and most of my debugging time went into understanding how auth, RLS policies, and realtime actually interact.
+
+---
+
+## Database
+
+Table: `bookmarks`
+
+Fields:
+
+* id
+* title
+* url
+* user_id
+* created_at
+
+Row Level Security is enabled so users can only select, insert, update, or delete their own bookmarks using:
+
+```
+auth.uid() = user_id
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How to run locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Clone the repo and install:
 
-## Learn More
+```
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Add your Supabase keys in `.env.local`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# abstrait-assesment
+---
