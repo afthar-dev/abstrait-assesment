@@ -27,7 +27,7 @@ export default function FormBookmark({ onAdd, onClose, initialData }: Props) {
   };
 
   return (
-    <div className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-2xl rounded-2xl p-8 w-sm md:w-lg relative">
+    <div className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-2xl rounded-2xl p-8 w-80 md:w-lg relative">
       <button onClick={onClose} className="absolute right-4 top-4">
         <X size={18} />
       </button>
