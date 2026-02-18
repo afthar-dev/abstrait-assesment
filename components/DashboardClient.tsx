@@ -122,7 +122,7 @@ export default function DashboardClient({ userId, email, bookmarks }: Props) {
         Bookmarks Dashboard
       </h1>
 
-      <div className="flex flex-col justify-center items-center w-sm md:w-4xl rounded-lg bg-blue-50 p-5 md:p-10">
+      <div className="flex flex-col justify-center items-center w-80 md:w-4xl rounded-lg bg-blue-50 p-5 md:p-10">
         <div className="flex items-center justify-between w-full">
           <p className="text-2xl font-bold">Hello {email.split("@")[0]}!</p>
 
